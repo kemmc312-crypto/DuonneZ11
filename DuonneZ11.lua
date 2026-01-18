@@ -1,11 +1,24 @@
 --[[ 
-    DUONNEZOG PRIME V14.1 - FULL OPTIMIZED
-    - GIỮ NGUYÊN 100% LOGIC AUTO CHEST CỦA ÔNG
-    - THÊM LƯU STATS XUYÊN SERVER
-    - FIX UI ĐẦU LÂU HACKER & CHỐNG TRÀN
+    DUONNEZOG PRIME V14.2 - VELOCITY AUTO-EXEC OPTIMIZED
+    - THÊM: Kiểm tra game load hoàn tất
+    - THÊM: Tự động chọn Marines ngay khi vào
+    - FIX: Lưu dữ liệu và UI đầu lâu hacker
 ]]
 
-repeat task.wait() until game:IsLoaded()
+-- Đợi game load xong 100% trước khi chạy code
+if not game:IsLoaded() then 
+    game.Loaded:Wait() 
+end
+
+-- Đợi nhân vật và dữ liệu sẵn sàng (Tránh lỗi nil của Executor)
+repeat task.wait() until game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:FindFirstChild("Data")
+
+--// [TỰ ĐỘNG CHỌN PHE - Marines]
+pcall(function()
+    if game:GetService("Players").LocalPlayer.Team == nil then
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    end
+end)
 
 --// [PHẦN 1: HỆ THỐNG LƯU TRỮ]
 local HttpService = game:GetService("HttpService")
@@ -124,7 +137,7 @@ task.spawn(function()
     BlackFrame:Destroy()
 end)
 
---// [PHẦN 5: AUTO CHEST GỐC CỦA ÔNG - GIỮ NGUYÊN 100%]
+--// [PHẦN 5: AUTO CHEST GỐC]
 getgenv().Config = {
     AutoChest = true,
     MaxPlayers = 8,
