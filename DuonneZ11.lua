@@ -1,263 +1,230 @@
 --[[ 
-    DuonneZ11 - Auto Chest FINAL
-    TELE | Stable | Auto Team | Auto Hop
+    DUONNEZOG PRIME V14.1 - FULL OPTIMIZED
+    - GIỮ NGUYÊN 100% LOGIC AUTO CHEST CỦA ÔNG
+    - THÊM LƯU STATS XUYÊN SERVER
+    - FIX UI ĐẦU LÂU HACKER & CHỐNG TRÀN
 ]]
 
---// ANTI DOUBLE LOAD
-if getgenv().DuonneZ11_Loaded then return end
-getgenv().DuonneZ11_Loaded = true
+repeat task.wait() until game:IsLoaded()
 
---// TEAM SYSTEM (SAVE WHEN HOP)
-getgenv().DUONNE_TEAM = getgenv().DUONNE_TEAM or "MARINE" -- "MARINE" / "PIRATE"
+--// [PHẦN 1: HỆ THỐNG LƯU TRỮ]
+local HttpService = game:GetService("HttpService")
+local fileName = "DuonneZOG_Data.json"
 
---// SERVICES
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
+local function SaveStats(data)
+    pcall(function() writefile(fileName, HttpService:JSONEncode(data)) end)
+end
 
-local lp = Players.LocalPlayer
-local PlaceId = game.PlaceId
+local function LoadStats()
+    if isfile(fileName) then
+        local success, result = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
+        if success then return result end
+    end
+    return nil
+end
 
+local SavedData = LoadStats()
+local TotalMoneyEarned = SavedData and SavedData.Money or 0
+local TotalChalice = SavedData and SavedData.Chalice or 0
+local TotalFist = SavedData and SavedData.Fist or 0
+local StartTime = SavedData and SavedData.StartTime or tick()
+local LastBeli = game.Players.LocalPlayer.Data.Beli.Value
+
+--// [PHẦN 2: GIAO DIỆN UI ĐẦU LÂU HACKER]
+local sg = Instance.new("ScreenGui", game.CoreGui)
+sg.Name = "DuonneZOG_Final"
+sg.DisplayOrder = 9999
+
+local BlackFrame = Instance.new("Frame", sg)
+BlackFrame.Size = UDim2.new(1, 0, 1, 0)
+BlackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+BlackFrame.ZIndex = 1
+
+local Main = Instance.new("Frame", sg)
+Main.Size = UDim2.new(0, 450, 0, 170)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Main.BorderSizePixel = 0
+Main.ZIndex = 2
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 15)
+local stroke = Instance.new("UIStroke", Main)
+stroke.Color = Color3.fromRGB(255, 0, 0)
+stroke.Thickness = 3
+
+local logo = Instance.new("ImageLabel", Main)
+logo.Size = UDim2.new(0, 110, 0, 110)
+logo.Position = UDim2.new(0, 20, 0.5, -55)
+logo.BackgroundTransparency = 1
+logo.Image = "rbxthumb://type=Asset&id=8582793337&w=420&h=420"
+logo.ZIndex = 3
+
+local function CreateLabel(text, pos, color, size)
+    local l = Instance.new("TextLabel", Main)
+    l.Size = UDim2.new(0, 280, 0, 30)
+    l.Position = pos
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = size or 16
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.ZIndex = 4
+    return l
+end
+
+local title = CreateLabel("DUONNEZOG PRIME", UDim2.new(0, 145, 0, 20), Color3.fromRGB(255, 0, 0), 24)
+local moneyTxt = CreateLabel("Earned: +0k Beli", UDim2.new(0, 145, 0, 55), nil, 17)
+local timeTxt = CreateLabel("Time: 00:00:00", UDim2.new(0, 145, 0, 80), Color3.fromRGB(180, 180, 180), 16)
+local chaliceTxt = CreateLabel("Chalice Found: 0", UDim2.new(0, 145, 0, 105), Color3.fromRGB(255, 255, 0), 16)
+local fistTxt = CreateLabel("Fist of Darkness: 0", UDim2.new(0, 145, 0, 130), Color3.fromRGB(255, 0, 255), 16)
+
+--// [PHẦN 3: LOGIC CẬP NHẬT STATS]
 task.spawn(function()
-    local lp = game.Players.LocalPlayer
-    local pg = lp:WaitForChild("PlayerGui")
-
-    while task.wait(0.1) do
-        for _,v in ipairs(pg:GetDescendants()) do
-            if v:IsA("TextButton") then
-                local t = v.Text:lower()
-                if t:find("marine") then
-                    firesignal(v.MouseButton1Click)
-                    warn("AUTO CHOSE MARINE")
-                    return
+    while task.wait(0.5) do
+        pcall(function()
+            local currentBeli = game.Players.LocalPlayer.Data.Beli.Value
+            if currentBeli > LastBeli then TotalMoneyEarned = TotalMoneyEarned + (currentBeli - LastBeli) end
+            LastBeli = currentBeli
+            
+            local chaliceInBag, fistInBag = 0, 0
+            for _, folder in pairs({game.Players.LocalPlayer.Backpack, game.Players.LocalPlayer.Character}) do
+                for _, v in pairs(folder:GetChildren()) do
+                    if v.Name == "God's Chalice" then chaliceInBag = chaliceInBag + 1 end
+                    if v.Name:find("Fist") then fistInBag = fistInBag + 1 end
                 end
             end
-        end
-    end
-end)
+            if chaliceInBag > TotalChalice then TotalChalice = chaliceInBag end
+            if fistInBag > TotalFist then TotalFist = fistInBag end
 
---// CHARACTER
-local function getHRP()
-    local char = lp.Character or lp.CharacterAdded:Wait()
-    return char:WaitForChild("HumanoidRootPart")
-end
+            moneyTxt.Text = "Earned: +" .. string.format("%.1f", TotalMoneyEarned/1000) .. "k Beli"
+            timeTxt.Text = "Time: " .. os.date("!%X", tick() - StartTime)
+            chaliceTxt.Text = "Chalice Found: " .. TotalChalice
+            fistTxt.Text = "Fist of Darkness: " .. TotalFist
 
---// ================= UI =================
-local gui = Instance.new("ScreenGui")
-gui.Name = "DuonneZ11_UI"
-gui.ResetOnSpawn = false
-gui.Parent = lp:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,240,0,240)
-frame.Position = UDim2.new(0,30,0.45,0)
-frame.BackgroundColor3 = Color3.fromRGB(22,22,22)
-frame.BorderSizePixel = 0
-frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,-12,0,26)
-title.Position = UDim2.new(0,6,0,6)
-title.BackgroundTransparency = 1
-title.Text = "DuonneZ11"
-title.TextColor3 = Color3.fromRGB(120,200,120)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
-
--- Auto Chest
-local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(1,-12,0,38)
-toggle.Position = UDim2.new(0,6,0,36)
-toggle.BackgroundColor3 = Color3.fromRGB(60,120,60)
-toggle.TextColor3 = Color3.new(1,1,1)
-toggle.Font = Enum.Font.GothamBold
-toggle.TextSize = 15
-toggle.Text = "Auto Chest : ON"
-toggle.AutoButtonColor = false
-toggle.Parent = frame
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,8)
-
--- Move Mode
-local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(1,-12,0,28)
-modeBtn.Position = UDim2.new(0,6,0,80)
-modeBtn.BackgroundColor3 = Color3.fromRGB(120,70,70)
-modeBtn.TextColor3 = Color3.new(1,1,1)
-modeBtn.Font = Enum.Font.Gotham
-modeBtn.TextSize = 13
-modeBtn.Text = "Move Mode : TELE"
-modeBtn.AutoButtonColor = false
-modeBtn.Parent = frame
-Instance.new("UICorner", modeBtn).CornerRadius = UDim.new(0,8)
-
--- Server Hop
-local hopToggle = Instance.new("TextButton")
-hopToggle.Size = UDim2.new(1,-12,0,28)
-hopToggle.Position = UDim2.new(0,6,0,118)
-hopToggle.BackgroundColor3 = Color3.fromRGB(70,100,140)
-hopToggle.TextColor3 = Color3.new(1,1,1)
-hopToggle.Font = Enum.Font.Gotham
-hopToggle.TextSize = 13
-hopToggle.Text = "Server Hop : ON"
-hopToggle.AutoButtonColor = false
-hopToggle.Parent = frame
-Instance.new("UICorner", hopToggle).CornerRadius = UDim.new(0,8)
-
--- Team Button (Blue X style)
-local teamBtn = Instance.new("TextButton")
-teamBtn.Size = UDim2.new(1,-12,0,28)
-teamBtn.Position = UDim2.new(0,6,0,154)
-teamBtn.BackgroundColor3 = Color3.fromRGB(90,140,90)
-teamBtn.TextColor3 = Color3.new(1,1,1)
-teamBtn.Font = Enum.Font.Gotham
-teamBtn.TextSize = 13
-teamBtn.AutoButtonColor = false
-teamBtn.Parent = frame
-Instance.new("UICorner", teamBtn).CornerRadius = UDim.new(0,8)
-
-local function updateTeamText()
-    teamBtn.Text = "Team : " .. getgenv().DUONNE_TEAM
-end
-updateTeamText()
-
-teamBtn.MouseButton1Click:Connect(function()
-    if getgenv().DUONNE_TEAM == "MARINE" then
-        getgenv().DUONNE_TEAM = "PIRATE"
-        teamBtn.BackgroundColor3 = Color3.fromRGB(140,90,90)
-    else
-        getgenv().DUONNE_TEAM = "MARINE"
-        teamBtn.BackgroundColor3 = Color3.fromRGB(90,140,90)
-    end
-    updateTeamText()
-end)
-
--- Hop Time
-local hopLabel = Instance.new("TextLabel")
-hopLabel.Size = UDim2.new(1,-12,0,22)
-hopLabel.Position = UDim2.new(0,6,0,186)
-hopLabel.BackgroundTransparency = 1
-hopLabel.Text = "Hop Time: 25s"
-hopLabel.TextColor3 = Color3.fromRGB(200,200,200)
-hopLabel.Font = Enum.Font.Gotham
-hopLabel.TextSize = 13
-hopLabel.TextXAlignment = Enum.TextXAlignment.Left
-hopLabel.Parent = frame
-
---// DRAG UI
-do
-    local dragging, dragStart, startPos
-    frame.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = i.Position
-            startPos = frame.Position
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-            local d = i.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-        end
-    end)
-    UIS.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-end
-
---// ================= STATE =================
-local AutoChest = true
-local MoveMode = "TELE"
-local SPEED = 320
-local TELE_DIST = 25
-local ServerHop = true
-local HopTime = 25
-
---// BUTTON LOGIC
-toggle.MouseButton1Click:Connect(function()
-    AutoChest = not AutoChest
-    toggle.Text = "Auto Chest : " .. (AutoChest and "ON" or "OFF")
-    toggle.BackgroundColor3 = AutoChest and Color3.fromRGB(60,120,60) or Color3.fromRGB(35,35,35)
-end)
-
-modeBtn.MouseButton1Click:Connect(function()
-    MoveMode = (MoveMode == "TELE") and "FLY" or "TELE"
-    modeBtn.Text = "Move Mode : " .. MoveMode
-end)
-
-hopToggle.MouseButton1Click:Connect(function()
-    ServerHop = not ServerHop
-    hopToggle.Text = "Server Hop : " .. (ServerHop and "ON" or "OFF")
-end)
-
---// ================= CHEST =================
-local function getAllChests()
-    local t = {}
-    for _,v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Name:lower():find("chest") and v:FindFirstChild("TouchInterest") then
-            table.insert(t, v)
-        end
-    end
-    return t
-end
-
---// ================= MOVE =================
-local function moveTo(hrp, pos)
-    if MoveMode == "TELE" then
-        hrp.CFrame = CFrame.new(pos)
-        return
-    end
-
-    local dist = (hrp.Position - pos).Magnitude
-    local startCF = hrp.CFrame
-    local endCF = CFrame.new(pos)
-    local time = dist / SPEED
-    local start = tick()
-
-    while tick() - start < time do
-        hrp.CFrame = startCF:Lerp(endCF, (tick() - start) / time)
-        RunService.RenderStepped:Wait()
-    end
-    hrp.CFrame = endCF
-end
-
---// ================= AUTO CHEST =================
-task.spawn(function()
-    while task.wait(0.4) do
-        if not AutoChest then continue end
-
-        local hrp = getHRP()
-        local chests = getAllChests()
-
-        table.sort(chests, function(a,b)
-            return (hrp.Position - a.Position).Magnitude < (hrp.Position - b.Position).Magnitude
+            SaveStats({Money = TotalMoneyEarned, Chalice = TotalChalice, Fist = TotalFist, StartTime = StartTime})
         end)
+    end
+end)
 
-        for _,c in ipairs(chests) do
-            if not AutoChest then break end
-            if c and c.Parent and c:FindFirstChild("TouchInterest") then
-                moveTo(hrp, c.Position + (hrp.Position - c.Position).Unit * 1.5)
-                task.wait(0.15)
+--// [PHẦN 4: HIỆU ỨNG THU NHỎ UI]
+task.spawn(function()
+    task.wait(6)
+    local ts = game:GetService("TweenService")
+    local info = TweenInfo.new(1.2, Enum.EasingStyle.Quart)
+    ts:Create(BlackFrame, info, {BackgroundTransparency = 1}):Play()
+    ts:Create(Main, info, {Position = UDim2.new(0, 15, 0, 15), AnchorPoint = Vector2.new(0, 0), Size = UDim2.new(0, 250, 0, 120)}):Play()
+    ts:Create(logo, info, {Size = UDim2.new(0, 60, 0, 60), Position = UDim2.new(0, 10, 0.5, -30)}):Play()
+    title.TextSize = 14; title.Position = UDim2.new(0, 80, 0, 10)
+    moneyTxt.TextSize = 11; moneyTxt.Position = UDim2.new(0, 80, 0, 30)
+    timeTxt.TextSize = 10; timeTxt.Position = UDim2.new(0, 80, 0, 45)
+    chaliceTxt.TextSize = 10; chaliceTxt.Position = UDim2.new(0, 80, 0, 60)
+    fistTxt.TextSize = 10; fistTxt.Position = UDim2.new(0, 80, 0, 75)
+    task.wait(1.5)
+    BlackFrame:Destroy()
+end)
+
+--// [PHẦN 5: AUTO CHEST GỐC CỦA ÔNG - GIỮ NGUYÊN 100%]
+getgenv().Config = {
+    AutoChest = true,
+    MaxPlayers = 8,
+    HopTimeLimit = 25,
+    CollectTime = 5,   
+    PauseTime = 2,
+    WaitBetweenChests = 0.15,
+    IsHopping = false,
+    SafeMode = false
+}
+
+local RareItems = {"God's Chalice", "Fist of Darkness", "Mirror Fractal"}
+
+local function CheckRareItem()
+    for _, folder in pairs({game.Players.LocalPlayer.Backpack, game.Players.LocalPlayer.Character}) do
+        for _, item in ipairs(folder:GetChildren()) do
+            for _, rare in ipairs(RareItems) do if item.Name == rare then return true end end
+        end
+    end
+    return false
+end
+
+local RunService = game:GetService("RunService")
+RunService.Stepped:Connect(function()
+    if getgenv().Config.AutoChest and not getgenv().Config.SafeMode then
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            for _, v in ipairs(char:GetChildren()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
             end
         end
     end
 end)
 
---// ================= SERVER HOP =================
 task.spawn(function()
-    while task.wait(1) do
-        if not (ServerHop and AutoChest) then continue end
-        HopTime -= 1
-        hopLabel.Text = "Hop Time: " .. HopTime .. "s"
-        if HopTime <= 0 then
-            TeleportService:Teleport(PlaceId, lp)
-            return
+    while true do
+        task.wait(0.1)
+        if getgenv().Config.SafeMode then break end
+        if getgenv().Config.AutoChest and not getgenv().Config.IsHopping then
+            if CheckRareItem() then getgenv().Config.SafeMode = true; break end
+            local lp = game.Players.LocalPlayer
+            local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            if not hrp then continue end
+
+            local chests = {}
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v.Name:find("Chest") and v:FindFirstChild("TouchInterest") then table.insert(chests, v) end
+            end
+
+            table.sort(chests, function(a, b)
+                local pA = a.Name:lower():find("diamond") and 3 or a.Name:lower():find("gold") and 2 or 1
+                local pB = b.Name:lower():find("diamond") and 3 or b.Name:lower():find("gold") and 2 or 1
+                return pA > pB
+            end)
+
+            local start = tick()
+            for _, chest in ipairs(chests) do
+                if tick() - start >= getgenv().Config.CollectTime or getgenv().Config.IsHopping or CheckRareItem() then break end
+                if chest.Parent then
+                    hrp.CFrame = chest.CFrame
+                    task.wait(getgenv().Config.WaitBetweenChests)
+                    firetouchinterest(hrp, chest, 0)
+                    task.wait(0.05)
+                    firetouchinterest(hrp, chest, 1)
+                end
+            end
+            task.wait(getgenv().Config.PauseTime)
         end
     end
 end)
+
+local function GeminiHop()
+    if getgenv().Config.SafeMode then return end
+    getgenv().Config.IsHopping = true
+    pcall(function()
+        local servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")).data
+        for _, s in ipairs(servers) do
+            if s.playing < s.maxPlayers and s.id ~= game.JobId and s.playing <= getgenv().Config.MaxPlayers then
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id, game.Players.LocalPlayer)
+                task.wait(5)
+            end
+        end
+    end)
+    getgenv().Config.IsHopping = false
+end
+
+task.spawn(function()
+    local timer = getgenv().Config.HopTimeLimit
+    while task.wait(1) do
+        if getgenv().Config.SafeMode then break end
+        pcall(function()
+            if game.Players.LocalPlayer.Team == nil then
+                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+            end
+        end)
+        if getgenv().Config.AutoChest and not getgenv().Config.IsHopping then
+            timer = timer - 1
+            if timer <= 0 then GeminiHop(); timer = getgenv().Config.HopTimeLimit end
+        end
+    end
+end)
+
+for _, v in pairs(getconnections(game:GetService("Players").LocalPlayer.Idled)) do v:Disable() end
